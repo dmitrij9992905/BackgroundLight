@@ -1,0 +1,402 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- load MUI -->
+    <link href="mui.min.css" rel="stylesheet" type="text/css" />
+	<script src="mui.min.js"></script>
+    <script src="jquery-3.3.1.min.js"></script>
+	<script type="text/javascript">
+		function getFBGState() {
+			$.get("get_fbg_state", function(data) {
+				var clr = "#";
+				var r = "00";
+				var g = "00";
+				var b = "00";
+				if (data.r <= 0xF) {
+					r = "0"+data.r.toString(16);
+				}
+				else r = data.r.toString(16);
+				if (data.g <= 0xF) {
+					g = "0"+data.g.toString(16);
+				}
+				else g = data.g.toString(16);
+				if (data.b <= 0xF) {
+					b = "0"+data.b.toString(16);
+				}
+				else b = data.b.toString(16);
+				clr = clr+r+g+b;
+				$('#forceBgChange').val(clr);
+				
+				if (data.en == 1) $('#forceBgCheck').prop('checked', true);
+				else $('#forceBgCheck').prop('checked', false);
+				
+				$("#remTime").text(data.mr);
+			});
+		}
+	
+		$(document).ready(function() {
+		
+			$.get("reboot_req", function(data) {
+				if (data == "0") $('#rebootBlock').addClass('inactive');
+				else $('#rebootBlock').removeClass('inactive');
+			});
+		
+			setInterval(getFBGState(), 3000);
+		
+			$.get("get_greet_color", function(data) {
+				var clr = "#";
+				var r = "00";
+				var g = "00";
+				var b = "00";
+				if (data.r <= 0xF) {
+					r = "0"+data.r.toString(16);
+				}
+				else r = data.r.toString(16);
+				if (data.g <= 0xF) {
+					g = "0"+data.g.toString(16);
+				}
+				else g = data.g.toString(16);
+				if (data.b <= 0xF) {
+					b = "0"+data.b.toString(16);
+				}
+				else b = data.b.toString(16);
+				clr = clr+r+g+b;
+				$('#greetChange').val(clr);
+				if (data.en == 1) $('#greetCheck').prop('checked', true);
+				else $('#greetCheck').prop('checked', false);
+			});
+			
+			$.get("get_bg_color", function(data) {
+				var clr = "#";
+				var r = "00";
+				var g = "00";
+				var b = "00";
+				if (data.r <= 0xF) {
+					r = "0"+data.r.toString(16);
+				}
+				else r = data.r.toString(16);
+				if (data.g <= 0xF) {
+					g = "0"+data.g.toString(16);
+				}
+				else g = data.g.toString(16);
+				if (data.b <= 0xF) {
+					b = "0"+data.b.toString(16);
+				}
+				else b = data.b.toString(16);
+				clr = clr+r+g+b;
+				$('#bgChange').val(clr);
+				if (data.en == 1) $('#bgCheck').prop('checked', true);
+				else $('#bgCheck').prop('checked', false);
+			});
+			
+			$.get("get_warn_color", function(data) {
+				var clr = "#";
+				var r = "00";
+				var g = "00";
+				var b = "00";
+				if (data.r <= 0xF) {
+					r = "0"+data.r.toString(16);
+				}
+				else r = data.r.toString(16);
+				if (data.g <= 0xF) {
+					g = "0"+data.g.toString(16);
+				}
+				else g = data.g.toString(16);
+				if (data.b <= 0xF) {
+					b = "0"+data.b.toString(16);
+				}
+				else b = data.b.toString(16);
+				clr = clr+r+g+b;
+				$('#warnChange').val(clr);
+				if (data.en == 1) $('#warnCheck').prop('checked', true);
+				else $('#warnCheck').prop('checked', false);
+			});
+			
+			
+			$('#greetChange').on('change', function() {
+				$.post("set_greet_color", {color: $('#greetChange').val(), en: $('#greetCheck').is(':checked')});
+			});
+			$('#greetCheck').on('change', function() {
+				$.post("set_greet_color", {color: $('#greetChange').val(), en: $('#greetCheck').is(':checked')});
+			});
+			
+			$('#bgChange').on('change', function() {
+				$.post("set_bg_color", {color: $('#bgChange').val(), en: $('#bgCheck').is(':checked')});
+			});
+			$('#bgCheck').on('change', function() {
+				$.post("set_bg_color", {color: $('#bgChange').val(), en: $('#bgCheck').is(':checked')});
+			});
+			
+			$('#warnChange').on('change', function() {
+				$.post("set_warn_color", {color: $('#warnChange').val(), en: $('#warnCheck').is(':checked')});
+			});
+			$('#warnCheck').on('change', function() {
+				$.post("set_warn_color", {color: $('#warnChange').val(), en: $('#warnCheck').is(':checked')});
+			});
+			
+			$('#tmrLabel').text($('#forceBgTime').val());
+			$('#forceBgTime').on('change', function() {
+				$('#tmrLabel').text($('#forceBgTime').val());
+				$.post("set_fbg", {color: $('#forceBgChange').val(), en: $('#forceBgCheck').is(':checked'), min: $('#forceBgTime').val()});
+			});
+			
+			$('#forceBgCheck').on('change', function() {
+				$.post("set_fbg", {color: $('#forceBgChange').val(), en: $('#forceBgCheck').is(':checked'), min: $('#forceBgTime').val()});
+				
+			});
+			$('#forceBgChange').on('change', function() {
+				$.post("set_fbg", {color: $('#forceBgChange').val(), en: $('#forceBgCheck').is(':checked'), min: $('#forceBgTime').val()});
+				
+			});
+			
+			$('#changeCredentials').on('click', function() {
+				$.post("change_credentials", {ssid: $('#wifi_ssid').val(), pwd: $('#wifi_pass').val()});
+				$('#rebootBlock').removeClass('inactive');
+				window.location='#';
+			});
+			
+			
+			$('#sendReboot').on('click', function() {
+				window.location='reboot';
+				//$.get("reboot");
+			});
+		});
+	</script>
+    <style type="text/css">
+        .labels {
+			display: flex;
+			flex-direction: column;
+		}
+		
+		.elem {
+			margin: 5px;
+			align-self: center:
+		}
+		.rows {
+			margin: 2px;
+			display: flex;
+			flex-direction: row;
+		}
+		.centered {
+			margin: auto;
+		}
+		.stretched {
+			margin: auto;
+			width: 100%;
+		}
+		.inactive {
+			display:none;
+		}
+    </style>
+  </head>
+
+  <script type="text/javascript">
+    
+  </script>
+
+  <body>
+    <!-- example content -->
+    <div class="mui-container">
+		<div class="mui-panel labels">
+			<h1 class="centered">Настройка фоновой подсветки</h1>
+		</div>
+		<div class="mui-panel labels inactive" id="rebootBlock">
+			<div class="rows">
+				<div class="mui--text-danger elem">
+					Для применения изменения необходимо перезагрузить устройство
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-danger elem">
+					<button class="mui-btn mui-btn--raised mui-btn--danger" id="sendReboot">Перезагрузить</button>
+				</div>
+			</div>
+		</div>
+		<div class="mui-panel labels" >
+			<div class="rows">
+				<h2>Приветствие</h2>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead">
+					Включается при открытии двери<br>
+					или на короткое время при изменении состяния зажигания.<br>
+					После включения зажигания цвет переходит в фоновый свет,<br>
+					а после выключения зажигания или закрытия двери<br>
+					выключается.
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Включить
+				</div>
+				<div class="mui--text-subhead elem">
+					<input type="checkbox" id="greetCheck"/>
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Цвет
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="color" id="greetChange"/>
+				</div>
+			</div>
+		</div>
+		
+		<div class="mui-panel labels" >
+			<div class="rows">
+				<h2>Фоновая подсветка</h2>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead">
+					Включается через некоторое время после<br>
+					включения зажигания.<br>
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Включить
+				</div>
+				<div class="mui--text-subhead elem">
+					<input type="checkbox" id="bgCheck"/>
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Цвет
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="color" id="bgChange"/>
+				</div>
+			</div>
+		</div>
+		
+		<div class="mui-panel labels" >
+			<div class="rows">
+				<h2>Предупреждение открытой двери</h2>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead">
+					Включается при открытии двери<br>
+					при включенном зажигании и сразу<br>
+					гаснет после закрытия.
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Включить
+				</div>
+				<div class="mui--text-subhead elem">
+					<input type="checkbox" id="warnCheck"/>
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Цвет
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="color" id="warnChange"/>
+				</div>
+			</div>
+		</div>
+		
+		<div class="mui-panel labels" >
+			<div class="rows">
+				<h2>Принудительное включение фона</h2>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead">
+					Принудительное включение фона<br>
+					можно использовать при ожидании в машине,<br>
+					даже если зажигание выключено и двери закрыты.<br>
+					Если указано значение 0, то фон<br>
+					будет работать до тех пор,<br>
+					пока не наступит одно из событий.
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Включить
+				</div>
+				<div class="mui--text-subhead elem">
+					<input type="checkbox" id="forceBgCheck"/>
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Время работы, мин
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="range" min="0" max="120" value="5" step="5" id="forceBgTime"/>
+				</div>
+				<div class="mui--text-subhead elem" id="tmrLabel">
+					---
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Осталось времени, мин
+				</div>
+				<div class="mui--text-subhead elem" id="remTime">
+					---
+				</div>
+			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Цвет
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="color" id="forceBgChange"/>
+				</div>
+			</div>
+		</div>
+		
+		<div class="mui-panel labels" >
+			<div class="rows">
+				<h2>Сменить данные точки доступа</h2>
+			</div>
+			<!--
+			<div class="stretched">
+				<div class="mui-dropdown">
+					<button class="mui-btn mui-btn--primary" data-mui-toggle="dropdown">
+						Тип защиты
+						<span class="mui-caret"></span>
+					</button>
+					<ul class="mui-dropdown__menu">
+						<li><a href="#">Без пароля</a></li>
+						<li><a href="#">WPA2-PSK</a></li>
+					</ul>
+				</div>
+			</div>
+			-->
+			<div class="stretched">
+				<div class="mui-textfield mui-textfield--float-label">
+					<input type="text" id="wifi_ssid">
+					<label>SSID</label>
+				</div>
+				
+			</div>
+			
+			<div class="stretched" width="100%">
+				<div class="mui-textfield mui-textfield--float-label">
+					<input type="password" id="wifi_pass">
+					<label>Пароль</label>
+				</div>
+			</div>
+			<button class="mui-btn mui-btn--raised mui-btn--primary" id="changeCredentials">Сменить данные для подключения</button>
+		</div>
+		
+		<div class="mui-panel labels">
+			<h3 class="centered">(c) D0CT0RD, 2018</h3>
+		</div>
+    </div>
+  </body>
+</html>
