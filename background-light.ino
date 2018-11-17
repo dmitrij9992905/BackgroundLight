@@ -22,7 +22,7 @@ extern "C" {
     #include <ets_sys.h>
 }
 
-const int leds = 2; // Количество светодиодов
+const int leds = 8; // Количество светодиодов
 const int led_pin = 5; // D1 WeMos (выход на WS2812)
 const int reset_pin = 4; // D2 WeMos (вход кнопки Reset)
 
@@ -79,6 +79,8 @@ unsigned int event = 0;
 int8_t fbg_min = 0;
 int8_t fbg_sec = 0;
 int8_t fbg_min_set = 0;
+int8_t greet_tmr = 0;
+int8_t greet_tmr_set = 0;
 
 
 boolean fbg_state = false;
@@ -93,6 +95,9 @@ boolean greet_event = false;
 boolean reboot_required = false;
 boolean fading = false;
 boolean faded = false;
+unsigned int reboot_btn_millis = 0;
+boolean reboot_btn_pressed = false;
+boolean greeting = false;
 
 void resetAllEvents() {
   fbg_event = false;
@@ -102,6 +107,7 @@ void resetAllEvents() {
   event = 0;
 }
 
+// Возврат к заводским настройкам 
 void returnFactory() {
   greet_r = 255;
   greet_g = 255;
@@ -115,12 +121,12 @@ void returnFactory() {
   warn_light = true;
   bg_light = true;
   greet_light = true;
+  greet_tmr_set = 10;
   strcpy(ap_ssid, "bl_server_777");
-  strcpy(ap_pass, "89076123");
+  strcpy(ap_pass, "12345678");
 }
 
-
-
+// Запись файла настроек с текущими значениями
 void writeSettings() {
   StaticJsonBuffer<480> settingsJson;
   JsonObject& sets = settingsJson.createObject();
@@ -133,6 +139,7 @@ void writeSettings() {
   sets["warn_r"] = warn_r;
   sets["warn_g"] = warn_g;
   sets["warn_b"] = warn_b;
+  sets["greet_tmr"] = greet_tmr_set;
 
   sets["ap_ssid"] = ap_ssid;
   sets["ap_pass"] = ap_pass;
@@ -154,6 +161,7 @@ void writeSettings() {
   Serial.println("Settings written!");
 }
 
+// Чтение настроек из файла
 void readSettings() {
   StaticJsonBuffer<480> settingsJson;
   //String apSSIDstr;
@@ -188,6 +196,7 @@ void readSettings() {
     warn_light = sets["warn_light"];
     bg_light = sets["bg_light"];
     greet_light = sets["greet_light"];
+    greet_tmr_set = sets["greet_tmr"];
 
     strcpy(ap_ssid, sets["ap_ssid"]);
     strcpy(ap_pass, sets["ap_pass"]);
@@ -199,6 +208,7 @@ void readSettings() {
   }
 }
 
+// Отправка в сон
 void sleep(){
     Serial.println("Going to sleep...");
     int i = 0;
@@ -209,6 +219,7 @@ void sleep(){
     ESP.deepSleep(20e6);
 }
 
+// Выдача списка файлов
 void handleFileList() {
   DynamicJsonBuffer  jsonBuffer(1000);
   JsonObject& file_list = jsonBuffer.createObject();
@@ -235,11 +246,7 @@ void handleFileList() {
   server.send(200, "application/json", ans); // Выдача ответа
 }
 
-void handleFiles() {
-  server.sendHeader("Location", "/files.html",true); 
-  server.send(302, "text/plane","");  // Выдача ответа
-}
-
+// Смена данных WiFi
 void handleChangeWifiCredentials() {
   if ((server.argName(0) != "ssid") || (server.argName(1) != "pwd")) {
     server.send(500, "text/plain", "BAD ARGS");
@@ -264,21 +271,28 @@ void handleChangeWifiCredentials() {
   Serial.println("WiFi settings set: "+apSSIDstr+' '+apPassStr);
 }
 
+// Команда, возвращающая значение необходимости перезагрузки
 void getRebootReq() {
   if (reboot_required) server.send(200, "text/plain", "1");
   else server.send(200, "text/plain", "0");  
 }
 
+// Перезагрузка (перезапуск через короткий сон, ибо ESP.restart некорректно работают)
 void getReboot() {
   server.send(200, "text/plain", "Rebooting...");
+  reboot(); 
+}
+
+void reboot() {
   int i = 0;
-  while(i < 20) {
+  while(i < 5) {
     i++;
     delay(200);
   }
-  ESP.deepSleep(2e6);  
+  ESP.deepSleep(2e5);  
 }
 
+// Чтение файлов для выдачи клиенту
 bool handleFileRead(String path) {
   Serial.println("handleFileRead: " + path);
   if (path.endsWith("/")) {
@@ -297,12 +311,14 @@ bool handleFileRead(String path) {
   }
   return false;
 }
- 
+
+// Выдача главной страницы
 void handleRoot(){ // Выдача главной страницы HTML
   server.sendHeader("Location", "/index.html",true); 
   server.send(302, "text/plane","");  // Выдача ответа
 }
 
+// Выдача состояния принудительной фоновой подсветки
 void getFBGState() {
   StaticJsonBuffer<88> jsonBuffer;
   JsonObject& out = jsonBuffer.createObject();
@@ -318,6 +334,7 @@ void getFBGState() {
   server.send(200, "application/json", ans);  
 }
 
+// Задание принудительного фона
 void setFBG() {
   String clr = server.arg(0);
   Serial.println(clr);
@@ -333,6 +350,7 @@ void setFBG() {
   server.send(200, "text/plain", "OK");
 } 
 
+// Обработка запросов
 void handleWebRequests(){ // При запросе других страниц
   if(loadFromSpiffs(server.uri())) return;
   String message = "File Not Detected\n\n";
@@ -350,6 +368,7 @@ void handleWebRequests(){ // При запросе других страниц
   Serial.println(message);
 }
 
+// Задать цвет (какой - выбирается)
 void handleSetColor(uint8_t type) {
   String clr = server.arg(0);
   
@@ -420,6 +439,23 @@ void handleGetColor(uint8_t type) {
   server.send(200, "application/json", ans);  
 }
 
+void getGreetTime() {
+  StaticJsonBuffer<32> jsonBuffer;
+  JsonObject& out = jsonBuffer.createObject();
+  out["greet_tmr"] = greet_tmr_set;
+  String ans;
+  out.printTo(ans);
+  server.send(200, "application/json", ans); 
+}
+
+void setGreetTime() {
+  String tmr = server.arg(0);
+  greet_tmr_set = tmr.toInt();
+  server.send(200, "text/plain", "OK");
+  Serial.println("Greeting time set");
+  writeSettings();
+}
+
 void fileLoadForm() {
   server.sendHeader("Location", "/files.html",true); 
   server.send(302, "text/plane","");  // Выдача ответа
@@ -458,6 +494,7 @@ void setup() {
   pinMode(DOOR_PIN, INPUT_PULLUP);
   pinMode(IGN_PIN, INPUT_PULLUP);
   pinMode(ARM_PIN, INPUT_PULLUP);
+  pinMode(reset_pin, INPUT_PULLUP);
 
   previousMillis = 0;
 
@@ -501,6 +538,12 @@ void setup() {
   server.on("/set_fbg", HTTP_POST, []() {
     setFBG();
   });
+  server.on("/set_greet_tmr", HTTP_POST, []() {
+    setGreetTime();
+  });
+  server.on("/get_greet_tmr", HTTP_POST, []() {
+    getGreetTime();
+  });
   server.on("/change_credentials", HTTP_POST, handleChangeWifiCredentials);
   server.on("/reboot_req", getRebootReq);
   server.on("/reboot", getReboot);
@@ -529,18 +572,52 @@ void loop() {
   }
   else {
     //if (!wifi_up) wifiUp();
-    
+    /*
+     * Реализация процедуры сброса с кнопки
+     * если кнопка нажата и удержана менее 5 секунд - устройство просто перезагружается,
+     * более - сбрасывает настройки и перезагружается
+     */
+    if ((digitalRead(reset_pin) == 0) && !reboot_btn_pressed) {
+      reboot_btn_pressed = true;
+      reboot_btn_millis = millis();
+      Serial.println("Reset button has been pressed");
+    }
+    if ((millis() - reboot_btn_millis > 5000) && reboot_btn_pressed) {
+      for (int i = 0; i < 3; i++) {
+        setLEDColorRGB(0,0,0);
+        delay(500);
+        setLEDColorRGB((r < 60 ? 255 : r),(g < 60 ? 255 : g),(b < 60 ? 255 : b));
+        delay(500);
+      }
+      Serial.println("Resetting settings and reboot...");
+      SPIFFS.remove("/settings.json");
+      reboot();
+    }
+    if ((digitalRead(reset_pin) != 0) && (millis() - reboot_btn_millis < 5000) && reboot_btn_pressed) {
+      Serial.println("Rebooting...");
+      reboot();
+    }
+
+    // Если открывается дверь
     if ((digitalRead(DOOR_PIN) == 0) && !(digitalRead(IGN_PIN) == 0)) {
       //Serial.println("Greeting event");
       fast_fade = false;
+      greeting = true;
       if (fbg_state) fbg_state = false;
-      if (greet_light) event = 1;
+      if (greet_light) {
+        event = 1;
+        greeting = true;
+        greet_tmr = greet_tmr_set;
+      }
       else event = 0;
       if (r != r_old || g != g_old || b != b_old) fading = true;
     }
+
+    // Если двери закрыты, но включается зажигание/свет
     else if (!(digitalRead(DOOR_PIN) == 0) && (digitalRead(IGN_PIN) == 0)) {
       //Serial.println("Background event");
       fast_fade = false;
+      if (greeting) greeting = false;
       if (fbg_state) fbg_state = false;
       if (bg_light) event = 2;
       else event = 0;
@@ -554,7 +631,19 @@ void loop() {
       else event = 0;
       if (r != r_old || g != g_old || b != b_old) fading = true;
     }
-    else if ((event != 4) && fbg_state) {
+    // Если дверь закрыли, считаем время до выключения приветствия
+    else if (greeting) {
+      currentMillis = millis();
+      if (currentMillis - previousMillis >= 1000) {
+        previousMillis = currentMillis;
+        greet_tmr--;
+        if (greet_tmr < 0) {
+          greet_tmr = 0;
+          greeting = false;
+        }
+      }
+    }
+    else if ((event != 4) && fbg_state && !greeting) {
       //Serial.println("Force background ran");
       fast_fade = false;
       event = 4;  

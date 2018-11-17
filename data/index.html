@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Фоновая подсветка by D0CT0RD</title>
     <!-- load MUI -->
     <link href="mui.min.css" rel="stylesheet" type="text/css" />
 	<script src="mui.min.js"></script>
@@ -68,6 +69,16 @@
 				if (data.en == 1) $('#greetCheck').prop('checked', true);
 				else $('#greetCheck').prop('checked', false);
 			});
+			
+			$.get("get_greet_tmr", function(data) {
+				$('#greetTime').val(data.greet_tmr);
+				$('#greetTmrLabel').text($('#greetTime').val());
+			});
+			
+			$('#greetTime').on('change', function() {
+				$.post("set_greet_tmr", {greet_tmr: $('#greetTime').val()});
+				$('#greetTmrLabel').text($('#greetTime').val());
+			})
 			
 			$.get("get_bg_color", function(data) {
 				var clr = "#";
@@ -245,6 +256,19 @@
 					<input type="color" id="greetChange"/>
 				</div>
 			</div>
+			<div class="rows">
+				<div class="mui--text-subhead elem">
+					Задержка перед выключением (после закрытия двери), сек
+				</div>
+				<div class="mui--text-subhead elem">
+					<!--Под замену-->
+					<input type="range" min="0" max="60" value="5" step="5" id="greetTime"/>
+					
+				</div>
+				<div class="mui--text-subhead elem" id="greetTmrLabel">
+					---
+				</div>
+			</div>
 		</div>
 		
 		<div class="mui-panel labels" >
@@ -254,7 +278,7 @@
 			<div class="rows">
 				<div class="mui--text-subhead">
 					Включается через некоторое время после<br>
-					включения зажигания.<br>
+					включения зажигания или при включении света (в зависимости от установки).<br>
 				</div>
 			</div>
 			<div class="rows">
@@ -304,6 +328,7 @@
 					<input type="color" id="warnChange"/>
 				</div>
 			</div>
+			
 		</div>
 		
 		<div class="mui-panel labels" >
